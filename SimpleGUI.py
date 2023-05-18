@@ -4,7 +4,8 @@ import PySimpleGUI as sg
 import cv2
 import numpy as np
 
-from VideoStream import VideoStream
+#from VideoStream import VideoStream
+from FFVideoStream import VideoStream
 model = None
 
 #RESOLUTION = (1280, 720)
@@ -14,12 +15,12 @@ ZOOM_REZ = (1280, 720)
 BUFFERSIZE = 100
 
 VideoStreams = [
-    VideoStream("Pjaca", "https://ch-fra-n12.livespotting.com/vpu/ggazg0ll/g98s254r_720.m3u8", 30, RESOLUTION),
-    VideoStream("Burkovo", "https://ch-fra-n9.livespotting.com/vpu/ggazg0ll/taelb29k_1080.m3u8", 20, RESOLUTION),
-    VideoStream("Vrtic1", "https://cdn-004.whatsupcams.com/hls/hr_jelsa01.m3u8", 15, RESOLUTION),
-    VideoStream("Vrtic2", "https://cdn-002.whatsupcams.com/hls/hr_jelsa04.m3u8", 12, RESOLUTION),
-    VideoStream("CentarOkretna", "https://cdn-004.whatsupcams.com/hls/hr_jelsa06.m3u8", 10, RESOLUTION),
-    VideoStream("VelaGospa", "https://cdn-002.whatsupcams.com/hls/hr_jelsa07.m3u8", 10, RESOLUTION)
+    VideoStream("Pjaca", "https://ch-fra-n12.livespotting.com/vpu/ggazg0ll/g98s254r_720.m3u8", RESOLUTION),
+    VideoStream("Burkovo", "https://ch-fra-n9.livespotting.com/vpu/ggazg0ll/taelb29k_1080.m3u8", RESOLUTION),
+    VideoStream("Vrtic1", "https://cdn-004.whatsupcams.com/hls/hr_jelsa01.m3u8", RESOLUTION),
+    VideoStream("Vrtic2", "https://cdn-002.whatsupcams.com/hls/hr_jelsa04.m3u8", RESOLUTION),
+    VideoStream("CentarOkretna", "https://cdn-004.whatsupcams.com/hls/hr_jelsa06.m3u8", RESOLUTION),
+    VideoStream("VelaGospa", "https://cdn-002.whatsupcams.com/hls/hr_jelsa07.m3u8", RESOLUTION)
 ]
 
 def arrangeDisplays():
@@ -39,13 +40,14 @@ def loadModel():
     global model
     import torch
     print(f"Setup complete. Using torch {torch.__version__} ({torch.cuda.get_device_properties(0).name if torch.cuda.is_available() else 'CPU'})")
-    model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
-    model.classes = [0, 2, 8]
+    model = torch.hub.load('ultralytics/yolov5', 'yolov5m')
+    #model.classes = [0, 2, 8]
 
 def inferImage(image):
-    results = model([image], size=640)
+    im = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    results = model([im], size=640)
     results.render()
-    return results.imgs[0]
+    return cv2.cvtColor(results.imgs[0], cv2.COLOR_RGB2BGR)
 
 
 if __name__ == '__main__':
@@ -122,5 +124,3 @@ if __name__ == '__main__':
     
     window.close()
     cv2.destroyAllWindows()
-
-    

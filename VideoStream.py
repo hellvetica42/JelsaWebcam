@@ -4,6 +4,7 @@ import numpy as np
 
 from threading import Thread
 from multiprocessing import Process, Queue
+import plotext as plt
 import time
 
 class VideoStream:
@@ -19,47 +20,44 @@ class VideoStream:
 
 
         self.lastRead = time.perf_counter()
+        self.tracked = False
 
         self.running = False
         self.zoomed = False
 
-    def threadQueue(self, q, rez, fpsQ):
+    def threadQueue(self, q : Queue, rez):
         print(f"Thread {self.name} started")
         cap = cv2.VideoCapture(self.url)
-        frameCount = 0
-        firstRun = True
-        frameCounts = []
-        timeDiffs = []
+        cap.set(cv2.CAP_PROP_BUFFERSIZE, 2)
+        qsizes = []
+        last_time = time.perf_counter()
+        last_plot = time.perf_counter()
+        plt_interval = 0.1
         while True:
-            #time.sleep(0.5/self.fps)
+
+            if time.perf_counter() - last_plot > plt_interval:
+                last_plot = time.perf_counter()
+                x = np.arange(len(qsizes))
+                #print(qsizes)
+                plt.clear_terminal()
+                plt.clear_figure()
+                plt.plot_size(width=128, height=80)
+                plt.plot(x, qsizes)
+                plt.show()
+
+            if time.perf_counter() - last_time <= 1.0/self.fps:
+                continue
+            last_time = time.perf_counter()
+            qsizes.append(q.qsize())
+            if len(qsizes) > 100:
+                qsizes.pop(0)
             #print(f"{self.name} size: {q.qsize()}")
-            if q.qsize() < 200:
-                startTime = time.perf_counter()
 
-                img = cap.read()[1]
 
-                timeDiff = time.perf_counter() - startTime
-                frameCount += 1
-
-                if timeDiff > 1:
-
-                    if len(frameCounts) > 20:
-                        timeDiffs.pop(0)
-                        frameCounts.pop(0)
-
-                    if not firstRun:
-                        timeDiffs.append(timeDiff)
-                        frameCounts.append(frameCount)
-                        fpsAvg = sum(frameCounts) / sum(timeDiffs)
-                        fpsQ.put(fpsAvg)
-                        print(f"{self.name}, {timeDiff=}, {frameCount=}, {fpsAvg=}, {q.qsize()=}")
-
-                    
-                    frameCount = 0
-                    firstRun = False
-
-                if img is not None and not firstRun:
-                    #img = cv2.resize(img, rez)
+            if q.qsize() < 100:
+                ret, img = cap.read()
+                if ret:
+                    img = cv2.resize(img, rez)
                     q.put(img)
             else:
                 while not q.empty():
@@ -105,10 +103,7 @@ class VideoStream:
 
     def getImage(self):
 
-        if not self.fpsQ.empty():
-            self.fps = self.fpsQ.get()
-
-        if time.perf_counter() - self.lastRead >= 1.0/self.fps:
+        if time.perf_counter() - self.lastRead >= 1.0/self.fps or True:
             self.lastRead = time.perf_counter()
             self.readImage()
 
