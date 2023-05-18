@@ -4,6 +4,7 @@ import numpy as np
 
 from threading import Thread
 from multiprocessing import Process, Queue
+import plotext as plt
 import time
 
 class VideoStream:
@@ -23,15 +24,38 @@ class VideoStream:
         self.running = False
         self.zoomed = False
 
-    def threadQueue(self, q, rez):
+    def threadQueue(self, q : Queue, rez):
         print(f"Thread {self.name} started")
         cap = cv2.VideoCapture(self.url)
+        cap.set(cv2.CAP_PROP_BUFFERSIZE, 2)
+        qsizes = []
+        last_time = time.perf_counter()
+        last_plot = time.perf_counter()
+        plt_interval = 0.1
         while True:
-            time.sleep(0.5/self.fps)
+
+            if time.perf_counter() - last_plot > plt_interval:
+                last_plot = time.perf_counter()
+                x = np.arange(len(qsizes))
+                #print(qsizes)
+                plt.clear_terminal()
+                plt.clear_figure()
+                plt.plot_size(width=128, height=80)
+                plt.plot(x, qsizes)
+                plt.show()
+
+            if time.perf_counter() - last_time <= 1.0/self.fps:
+                continue
+            last_time = time.perf_counter()
+            qsizes.append(q.qsize())
+            if len(qsizes) > 100:
+                qsizes.pop(0)
             #print(f"{self.name} size: {q.qsize()}")
-            if q.qsize() < 10:
-                img = cap.read()[1]
-                if img is not None:
+
+
+            if q.qsize() < 100:
+                ret, img = cap.read()
+                if ret:
                     img = cv2.resize(img, rez)
                     q.put(img)
 
@@ -73,7 +97,7 @@ class VideoStream:
 
     def getImage(self):
 
-        if time.perf_counter() - self.lastRead >= 1.0/self.fps:
+        if time.perf_counter() - self.lastRead >= 1.0/self.fps or True:
             self.lastRead = time.perf_counter()
             self.readImage()
 
