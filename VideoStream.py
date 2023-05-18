@@ -18,6 +18,7 @@ class VideoStream:
 
 
         self.lastRead = time.perf_counter()
+        self.tracked = False
 
         self.running = False
         self.zoomed = False

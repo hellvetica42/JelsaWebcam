@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 
 from VideoStream import VideoStream
+model = None
 
 #RESOLUTION = (1280, 720)
 SCREEN_REZ = (2560, 1440)
@@ -33,6 +34,18 @@ def arrangeDisplays():
         cv2.moveWindow(vs.name, x,y)
         cv2.resizeWindow(vs.name, vs.rez[0], vs.rez[1])
         x += vs.rez[0]
+
+def loadModel():
+    global model
+    import torch
+    print(f"Setup complete. Using torch {torch.__version__} ({torch.cuda.get_device_properties(0).name if torch.cuda.is_available() else 'CPU'})")
+    model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
+    #model.classes = [0, 2, 8]
+
+def inferImage(image):
+    results = model([image], size=640)
+    results.render()
+    return results.imgs[0]
 
 
 if __name__ == '__main__':
@@ -81,13 +94,19 @@ if __name__ == '__main__':
                     arrangeDisplays()
 
                 elif event == "track"+vs.name:
-                    os.system('/usr/bin/python3 tensorflow-human-detectionV2.py ' + vs.url+ ' &')
+                    if model is None:
+                        loadModel()
+                    vs.tracked = not vs.tracked
+                    #os.system('/usr/bin/python3 tensorflow-human-detectionV2.py ' + vs.url+ ' &')
                     #os.system(f'/usr/bin/python3 MotionDetection.py {vs.url} {vs.fps} &')
         
 
         for vs in VideoStreams:
             if vs.running:
-                cv2.imshow(vs.name, vs.getImage())
+                resImg = vs.getImage()
+                if vs.tracked:
+                    resImg = inferImage(resImg)
+                cv2.imshow(vs.name, resImg)
                 #_, _, w, h = cv2.getWindowImageRect(vs.name)
                 #if w != vs.rez[0] or h != vs.rez[1]:
                 #    arangeDisplays()
@@ -103,5 +122,3 @@ if __name__ == '__main__':
     
     window.close()
     cv2.destroyAllWindows()
-
-    
