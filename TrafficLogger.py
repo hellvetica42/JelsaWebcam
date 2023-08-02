@@ -49,15 +49,7 @@ def get_data(model):
     print("Got detections")
     return results.pandas().xyxy
     
-
-if __name__ == "__main__":
-    print(f"Setup complete. Using torch {torch.__version__} ({torch.cuda.get_device_properties(0).name if torch.cuda.is_available() else 'CPU'})")
-    print("Loading model..")
-    model = torch.hub.load('ultralytics/yolov5', 'yolov5m')
-    print("Model loaded.")
-
-    detections = get_data(model)
-    #Name, Class, Detections, Timestamp
+def write_data(detections):
     data = {
         "Name":[],
         "Class":[],
@@ -72,9 +64,20 @@ if __name__ == "__main__":
             data["Detections"].append(count)
             data["Timestamp"].append(datetime.datetime.now())
     new_df = pd.DataFrame(data)
+    print(new_df)
 
     df = pd.read_csv('logged_data.csv')
     df = pd.concat([df, new_df])
     df.to_csv('logged_data.csv', index=False)
-    
 
+
+if __name__ == "__main__":
+    print(f"Setup complete. Using torch {torch.__version__} ({torch.cuda.get_device_properties(0).name if torch.cuda.is_available() else 'CPU'})")
+    print("Loading model..")
+    model = torch.hub.load('ultralytics/yolov5', 'yolov5m')
+    print("Model loaded.")
+
+    while True:
+        detections = get_data(model)
+        write_data(detections)
+        time.sleep(600)
