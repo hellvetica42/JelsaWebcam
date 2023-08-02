@@ -21,22 +21,15 @@ def get_data(model):
     for name in video_urls:
         print(f"Getting image from {name}")
         player = None
+        img = None
 
-        while player is None:
+        while player is None or img is None:
             try:
                 player = MediaPlayer(video_urls[name])
-            except Exception as e:
-                print("Failed to create player")
-                print(e)
                 time.sleep(1)
-
-        time.sleep(1)
-
-        img = None
-        while img is None:
-            try:
                 img, val = player.get_frame()
             except Exception as e:
+                print("Failed to create player or get data")
                 print(e)
                 time.sleep(1)
 
