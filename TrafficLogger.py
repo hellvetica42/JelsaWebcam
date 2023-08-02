@@ -66,6 +66,8 @@ if __name__ == "__main__":
     }
     for name, d in zip(video_urls.keys(), detections):
         values = d.name.value_counts()
+        if len(values) == 0:
+            continue
         for cls, count in values.iteritems():
             data["Name"].append(name)
             data["Class"].append(cls)
