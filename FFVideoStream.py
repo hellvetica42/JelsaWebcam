@@ -2,7 +2,6 @@ import cv2
 
 import numpy as np
 
-from threading import Thread
 from ffpyplayer.player import MediaPlayer
 from multiprocessing import Process, Queue
 import time
@@ -13,7 +12,9 @@ class VideoStream:
         self.url = url
         self.rez = rez
         self.lastImage = np.zeros((rez[1], rez[0], 3), dtype='uint8')
+        self.lastRead = time.time()
 
+        self.pos = None
         self.tracked = False
         self.running = False
         self.zoomed = False
@@ -69,6 +70,9 @@ class VideoStream:
     def readImage(self):
         if not self.q.empty():
             self.lastImage = self.q.get()
+            self.lastRead = time.time()
+        if time.time() - self.lastRead > 1.5:
+            self.lastImage = cv2.rectangle(self.lastImage, (0,0), tuple(self.rez), (0,0,255), 3)
 
     def getImage(self):
         self.readImage()
