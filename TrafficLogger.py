@@ -5,6 +5,7 @@ from ffpyplayer.player import MediaPlayer
 import numpy as np
 import torch
 import pandas as pd
+import cv2
 
 video_urls = {
     "Pjaca": "https://ch-fra-n12.livespotting.com/vpu/ggazg0ll/g98s254r_720.m3u8",
@@ -24,10 +25,15 @@ def get_data(model):
 
         while player is None:
             try:
-                player = MediaPlayer(video_urls[name])
+                #player = MediaPlayer(video_urls[name])
+                player = cv2.VideoCapture(video_urls[name])
             except Exception as e:
                 print("Failed to create player")
                 print(e)
+                time.sleep(1)
+            if player is None or not player.isOpened():
+                player  = None
+                print("Failed opening player")
                 time.sleep(1)
 
         time.sleep(1)
@@ -35,15 +41,18 @@ def get_data(model):
         img = None
         while img is None:
             try:
-                img, val = player.get_frame()
+                ret, img = player.read()
             except Exception as e:
+                print("Failed getting image")
                 print(e)
                 time.sleep(1)
 
-        img, t = img
-        w,h = img.get_size()
-        img = np.asarray(img.to_bytearray()[0]).reshape(h,w,3)
+        #img, t = img
+        #h,w = img.shape[:2]
+        #img = np.asarray(img.to_bytearray()[0]).reshape(h,w,3)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         images.append(img)
+        player.release()
 
     results = model(images, size=640)
     print("Got detections")
@@ -80,4 +89,4 @@ if __name__ == "__main__":
     while True:
         detections = get_data(model)
         write_data(detections)
-        time.sleep(600)
+        time.sleep(300)
